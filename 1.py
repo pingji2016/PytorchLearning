@@ -17,7 +17,7 @@ print(f'Using device: {device}')
 
 # 如果是 CUDA，打印显卡信息
 if device.type == 'cuda':
-    print(torch.cuda.get_device_name(0))
+    print(f"GPU: {torch.cuda.get_device_name(0)}")
 
 # --------------------------
 # 1. 数据准备
@@ -126,10 +126,12 @@ def test(model, device, test_loader):
 # 5. 辅助功能：绘图与图片保存
 # --------------------------
 def plot_losses(losses):
+    if not losses:
+        return
     plt.figure(figsize=(10, 5))
     plt.plot(losses, label='Training Loss')
     plt.title('Training Loss over Time')
-    plt.xlabel('Iterations (x100)')
+    plt.xlabel('Iterations (x100 batches)')
     plt.ylabel('Loss')
     plt.legend()
     plt.grid(True)
@@ -162,7 +164,7 @@ def save_and_predict_images(model, device, test_loader, num_images=2):
         with torch.no_grad():
             img_input = img_tensor.unsqueeze(0).to(device)
             output = model(img_input)
-            pred = output.argmax(dim=1, item=True)
+            pred = output.argmax(dim=1).item()
             print(f"Prediction for {img_filename}: {pred}")
 
 
@@ -175,6 +177,7 @@ def main():
     EPOCHS = 3 # 训练轮数
     LEARNING_RATE = 1.0
     GAMMA = 0.7
+    MODEL_PATH = "mnist_cnn.pt"
 
     # 加载数据
     print("Loading MNIST data...")
@@ -183,29 +186,39 @@ def main():
     # 初始化模型
     model = Net().to(device)
     
-    # 优化器
-    optimizer = optim.Adadelta(model.parameters(), lr=LEARNING_RATE)
-    # 学习率调度器
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=GAMMA)
-
-    # 记录损失
-    train_losses = []
-
-    # 循环训练
-    for epoch in range(1, EPOCHS + 1):
-        train(model, device, train_loader, optimizer, epoch, train_losses)
+    # 检查模型是否存在
+    if os.path.exists(MODEL_PATH):
+        print(f"\nFound existing model: {MODEL_PATH}")
+        print("Loading model and skipping training...")
+        model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
+        
+        # 直接进行测试
         test(model, device, test_loader)
-        scheduler.step()
+    else:
+        print("\nNo existing model found. Starting training...")
+        # 优化器
+        optimizer = optim.Adadelta(model.parameters(), lr=LEARNING_RATE)
+        # 学习率调度器
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=GAMMA)
 
-    # 绘制损失曲线
-    plot_losses(train_losses)
+        # 记录损失
+        train_losses = []
 
-    # 保存并预测测试图片
+        # 循环训练
+        for epoch in range(1, EPOCHS + 1):
+            train(model, device, train_loader, optimizer, epoch, train_losses)
+            test(model, device, test_loader)
+            scheduler.step()
+
+        # 绘制损失曲线
+        plot_losses(train_losses)
+
+        # 保存模型
+        torch.save(model.state_dict(), MODEL_PATH)
+        print(f"Model saved to {MODEL_PATH}")
+
+    # 保存并预测测试图片 (无论是否训练，都执行这一步)
     save_and_predict_images(model, device, test_loader, num_images=2)
-
-    # 保存模型
-    torch.save(model.state_dict(), "mnist_cnn.pt")
-    print("Model saved to mnist_cnn.pt")
 
 if __name__ == '__main__':
     main()
