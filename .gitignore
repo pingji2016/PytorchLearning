@@ -1,0 +1,4 @@
+.idea/
+*.pt
+/train_samples_0to9/
+/train_samples/
