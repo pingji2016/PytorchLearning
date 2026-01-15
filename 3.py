@@ -8,7 +8,7 @@ import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
-from torch.cuda.amp import autocast, GradScaler # 导入自动混合精度工具
+# from torch.cuda.amp import autocast, GradScaler # 已废弃，改用 torch.amp
 
 # 启用 cuDNN 自动调优，加速训练
 torch.backends.cudnn.benchmark = True
@@ -34,14 +34,14 @@ def main():
     # 超参数设置
     # 优化：针对 A10 (24GB) 极致优化
     latent_size = 64      # 潜在向量（随机噪声）的维度
-    hidden_size = 2048    # 隐藏层神经元数量 (从 1024 增加到 2048，利用强劲算力)
+    hidden_size = 2048    # 隐藏层神经元数量
     image_size = 784      # 图像展平后的大小 (28*28 = 784)
     num_epochs = 200      # 训练轮数
-    batch_size = 4096     # 批次大小 (增加到 4096)
+    batch_size = 4096     # 批次大小
     sample_dir = 'samples' # 生成样本的保存目录
     
-    # 混合精度 Scaler
-    scaler = GradScaler()
+    # 混合精度 Scaler (更新为新 API)
+    scaler = torch.amp.GradScaler('cuda')
 
     # 创建目录用于保存生成的图片
     if not os.path.exists(sample_dir):
@@ -64,7 +64,6 @@ def main():
                                        download=True)
 
     # 数据加载器
-    # 优化：设置 num_workers=8 利用服务器强大的 CPU
     data_loader = torch.utils.data.DataLoader(dataset=mnist, 
                                               batch_size=batch_size, 
                                               shuffle=True,
@@ -76,18 +75,17 @@ def main():
     # ================================================================== #
 
     # 判别器 (Discriminator)
-    # 优化：模型加宽
+    # 修改：移除 Sigmoid，配合 BCEWithLogitsLoss 使用，以支持混合精度训练
     D = nn.Sequential(
         nn.Linear(image_size, hidden_size),   
         nn.LeakyReLU(0.2),                    
         nn.Linear(hidden_size, hidden_size),  
         nn.LeakyReLU(0.2),
-        nn.Linear(hidden_size, 1),            
-        nn.Sigmoid()                          
+        nn.Linear(hidden_size, 1)
+        # nn.Sigmoid()  <-- 已移除，输出 logits
     ).to(device)
 
     # 生成器 (Generator)
-    # 优化：模型加宽
     G = nn.Sequential(
         nn.Linear(latent_size, hidden_size),  
         nn.BatchNorm1d(hidden_size),          
@@ -103,7 +101,8 @@ def main():
     #                         4. 训练过程                                 #
     # ================================================================== #
 
-    criterion = nn.BCELoss()
+    # 使用 BCEWithLogitsLoss 代替 BCELoss，数值更稳定且支持 AMP
+    criterion = nn.BCEWithLogitsLoss()
     d_optimizer = torch.optim.Adam(D.parameters(), lr=0.0002)
     g_optimizer = torch.optim.Adam(G.parameters(), lr=0.0002)
 
@@ -132,17 +131,17 @@ def main():
             # ------------------------------------------------------------------ #
 
             # 1. 计算真实图片的损失 (使用 autocast)
-            with autocast():
+            with torch.amp.autocast('cuda'):
                 outputs = D(images)
                 d_loss_real = criterion(outputs, real_labels)
-                real_score = outputs
+                real_score = outputs # 这里是 logits
                 
                 # 2. 计算假图片的损失
                 z = torch.randn(curr_batch_size, latent_size).to(device)
                 fake_images = G(z)
                 outputs = D(fake_images)
                 d_loss_fake = criterion(outputs, fake_labels)
-                fake_score = outputs
+                fake_score = outputs # 这里是 logits
                 
                 d_loss = d_loss_real + d_loss_fake
             
@@ -156,7 +155,7 @@ def main():
             #                        训练生成器 (Generator)                       #
             # ------------------------------------------------------------------ #
 
-            with autocast():
+            with torch.amp.autocast('cuda'):
                 # 1. 生成新的假图片
                 z = torch.randn(curr_batch_size, latent_size).to(device)
                 fake_images = G(z)
@@ -173,9 +172,13 @@ def main():
             
             # 日志打印
             if (i+1) % 5 == 0 or (i+1) == total_step:
+                # 将 logits 转换为概率以便打印
+                real_score_prob = torch.sigmoid(real_score).mean().item()
+                fake_score_prob = torch.sigmoid(fake_score).mean().item()
+                
                 print('Epoch [{}/{}], Step [{}/{}], d_loss: {:.4f}, g_loss: {:.4f}, D(x): {:.2f}, D(G(z)): {:.2f}' 
                       .format(epoch, num_epochs, i+1, total_step, d_loss.item(), g_loss.item(), 
-                              real_score.mean().item(), fake_score.mean().item()))
+                              real_score_prob, fake_score_prob))
         
         # 每个 epoch 结束后保存生成的图片
         if (epoch+1) == 1:
