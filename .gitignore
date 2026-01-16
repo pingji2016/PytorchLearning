@@ -2,3 +2,9 @@
 *.pt
 /train_samples_0to9/
 /train_samples/
+/discriminator.pth
+/generator.pth
+/mnist_cnn.pt
+/gan/discriminator.pth
+/gan/generator.pth
+/samples/
