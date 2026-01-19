@@ -161,9 +161,9 @@ def train():
     # --- 超参数设置 (Hyperparameters) ---
     VOCAB_SIZE = 50   # 词表大小 (数字 0-49)
     D_MODEL = 128     # 嵌入维度 (Embedding Dimension)
-    EPOCHS = 500      # 训练轮数
+    EPOCHS = 300      # 训练轮数 (增加轮数，因为现在是真学习)
     BATCH_SIZE = 64   # 批大小
-    SEQ_LEN = 10      # 序列长度
+    # SEQ_LEN = 10    # (移除固定长度，改为动态长度)
     
     # 检测是否有 GPU
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -176,29 +176,22 @@ def train():
     optimizer = optim.Adam(model.parameters(), lr=0.0005)
     
     # 损失函数: CrossEntropyLoss
-    # 用于分类任务，将模型输出的 logits 与真实标签进行比较
     criterion = nn.CrossEntropyLoss()
 
-    # --- 生成固定的训练数据集 ---
-    # Transformer 通常需要海量数据才能泛化。
-    # 为了在这个 Demo 中快速演示收敛效果，我们生成一个固定的数据集让模型去"背诵" (Overfit)。
-    print("Generating fixed dataset...")
-    n_samples = 2000
-    train_src, train_tgt = generate_random_batch(n_samples, SEQ_LEN, VOCAB_SIZE)
-    train_src, train_tgt = train_src.to(device), train_tgt.to(device)
-    
-    model.train() # 切换到训练模式 (启用 Dropout 等)
-    print("Start Training...")
-    
+    print("Start Training (Dynamic Data Generation)...")
+    n_samples = 3000 # 每个 Epoch 生成的样本数
     n_batches = n_samples // BATCH_SIZE
     
     for epoch in range(EPOCHS):
-        total_loss = 0
+        # --- 动态生成数据 (Dynamic Data Generation) ---
+        # 1. 每个 Epoch 生成全新的随机数据，防止死记硬背
+        # 2. 随机改变序列长度 (5 到 20)，让模型适应不同长度的输入
+        current_seq_len = random.randint(5, 20)
         
-        # 每个 epoch 打乱数据顺序 (Shuffle)
-        perm = torch.randperm(n_samples)
-        train_src = train_src[:, perm]
-        train_tgt = train_tgt[:, perm]
+        train_src, train_tgt = generate_random_batch(n_samples, current_seq_len, VOCAB_SIZE)
+        train_src, train_tgt = train_src.to(device), train_tgt.to(device)
+        
+        total_loss = 0
         
         for i in range(n_batches):
             # 1. 准备 Batch 数据

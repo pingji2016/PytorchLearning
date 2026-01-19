@@ -9,3 +9,4 @@
 /gan/generator.pth
 /samples/
 *.png
+/transformer_model.pth
