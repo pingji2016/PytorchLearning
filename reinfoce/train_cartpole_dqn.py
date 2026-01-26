@@ -98,6 +98,7 @@ def train(
     render_episodes=5,
     render_delay=1 / 60,
     fast=False,
+    fast_plus=False,
     lr=1e-3,
     buffer_size=100000,
     batch_size=64,
@@ -136,15 +137,21 @@ def train(
         except RuntimeError:
             loaded = False
 
+    trained_steps = 0
+    trained_episodes = 0
+    trained_seconds = 0.0
+
     if not loaded:
-        if fast:
-            total_steps = min(total_steps, 60000)
-            lr = 2.5e-3
-            buffer_size = 50000
-            batch_size = 128
-            start_steps = 200
-            target_update = 500
-            eps_decay = 8000
+        start_time = time.time()
+        if fast or fast_plus:
+            total_steps = min(total_steps, 120000 if fast_plus else 80000)
+            lr = 2.0e-3 if fast_plus else 2.5e-3
+            buffer_size = 80000 if fast_plus else 60000
+            batch_size = 256 if fast_plus else 128
+            start_steps = 500 if fast_plus else 300
+            target_update = 1000 if fast_plus else 700
+            gamma = 0.995 if fast_plus else 0.99
+            eps_decay = 15000 if fast_plus else 10000
             optimizer = optim.Adam(q.parameters(), lr=lr)
 
         buffer = ReplayBuffer(buffer_size, obs_dim)
@@ -208,6 +215,10 @@ def train(
 
             steps += 1
 
+        trained_steps = steps
+        trained_episodes = episode
+        trained_seconds = time.time() - start_time
+
         torch.save(q.state_dict(), model_path)
 
     returns = []
@@ -223,6 +234,13 @@ def train(
             ret += r
         returns.append(ret)
     avg_ret = sum(returns) / len(returns)
+    if loaded:
+        print("Mode=Inference (LoadedModel)")
+    else:
+        print("Mode=Training")
+        print(f"TrainedSteps={trained_steps}")
+        print(f"TrainedEpisodes={trained_episodes}")
+        print(f"TrainSeconds={trained_seconds:.2f}")
     print(f"AvgEvalReturn={avg_ret:.2f}")
     print(f"EvalEpisodes={eval_episodes}")
     print(f"ModelSaved={model_path}")
@@ -252,6 +270,7 @@ if __name__ == "__main__":
     parser.add_argument("--render-episodes", type=int, default=5)
     parser.add_argument("--render-delay", type=float, default=1 / 60)
     parser.add_argument("--fast", action="store_true")
+    parser.add_argument("--fast-plus", action="store_true")
     parser.add_argument("--stop-avg-return", type=float, default=450)
     parser.add_argument("--stop-window", type=int, default=20)
     parser.add_argument("--no-double-dqn", action="store_true")
@@ -266,6 +285,7 @@ if __name__ == "__main__":
         render_episodes=args.render_episodes,
         render_delay=args.render_delay,
         fast=args.fast,
+        fast_plus=args.fast_plus,
         stop_avg_return=args.stop_avg_return,
         stop_window=args.stop_window,
         double_dqn=not args.no_double_dqn,
