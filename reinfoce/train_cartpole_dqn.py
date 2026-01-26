@@ -2,6 +2,7 @@ import os
 import time
 import math
 import random
+from collections import deque
 import numpy as np
 import torch
 import torch.nn as nn
@@ -14,18 +15,30 @@ except ImportError:
 
 
 class QNetwork(nn.Module):
-    def __init__(self, obs_dim, act_dim):
+    def __init__(self, obs_dim, act_dim, dueling=True):
         super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(obs_dim, 128),
-            nn.ReLU(),
-            nn.Linear(128, 128),
-            nn.ReLU(),
-            nn.Linear(128, act_dim),
-        )
+        hidden_sizes = [256, 256, 128]
+        layers = []
+        in_dim = obs_dim
+        for h in hidden_sizes:
+            layers.append(nn.Linear(in_dim, h))
+            layers.append(nn.ReLU())
+            in_dim = h
+        self.feature = nn.Sequential(*layers)
+        self.dueling = dueling
+        if dueling:
+            self.value_head = nn.Linear(in_dim, 1)
+            self.adv_head = nn.Linear(in_dim, act_dim)
+        else:
+            self.q_head = nn.Linear(in_dim, act_dim)
 
     def forward(self, x):
-        return self.net(x)
+        feat = self.feature(x)
+        if self.dueling:
+            value = self.value_head(feat)
+            adv = self.adv_head(feat)
+            return value + adv - adv.mean(dim=1, keepdim=True)
+        return self.q_head(feat)
 
 
 class ReplayBuffer:
@@ -84,35 +97,61 @@ def train(
     force_train=False,
     render_episodes=5,
     render_delay=1 / 60,
+    fast=False,
+    lr=1e-3,
+    buffer_size=100000,
+    batch_size=64,
+    start_steps=1000,
+    target_update=1000,
+    gamma=0.99,
+    eps_start=1.0,
+    eps_end=0.05,
+    eps_decay=30000,
+    stop_avg_return=450,
+    stop_window=20,
+    min_episodes=20,
+    double_dqn=True,
+    dueling=True,
+    eval_episodes=10,
 ):
     env = gym.make("CartPole-v1")
     obs_dim = env.observation_space.shape[0]
     act_dim = env.action_space.n
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    q = QNetwork(obs_dim, act_dim).to(device)
-    target_q = QNetwork(obs_dim, act_dim).to(device)
+    q = QNetwork(obs_dim, act_dim, dueling=dueling).to(device)
+    target_q = QNetwork(obs_dim, act_dim, dueling=dueling).to(device)
     target_q.load_state_dict(q.state_dict())
-    optimizer = optim.Adam(q.parameters(), lr=1e-3)
+    optimizer = optim.Adam(q.parameters(), lr=lr)
 
     models_dir = os.path.join(os.path.dirname(__file__), "models")
     os.makedirs(models_dir, exist_ok=True)
     model_path = model_path if model_path else os.path.join(models_dir, "cartpole_dqn.pth")
 
+    loaded = False
     if os.path.exists(model_path) and not force_train:
-        q.load_state_dict(torch.load(model_path, map_location=device))
-    else:
-        buffer = ReplayBuffer(100000, obs_dim)
-        gamma = 0.99
-        batch_size = 64
-        start_steps = 1000
-        target_update = 1000
-        eps_start = 1.0
-        eps_end = 0.05
-        eps_decay = 30000
+        try:
+            q.load_state_dict(torch.load(model_path, map_location=device))
+            loaded = True
+        except RuntimeError:
+            loaded = False
+
+    if not loaded:
+        if fast:
+            total_steps = min(total_steps, 60000)
+            lr = 2.5e-3
+            buffer_size = 50000
+            batch_size = 128
+            start_steps = 200
+            target_update = 500
+            eps_decay = 8000
+            optimizer = optim.Adam(q.parameters(), lr=lr)
+
+        buffer = ReplayBuffer(buffer_size, obs_dim)
 
         steps = 0
         episode = 0
+        returns_window = deque(maxlen=stop_window)
         o = reset_env(env)
         ep_reward = 0.0
 
@@ -133,7 +172,14 @@ def train(
             if done:
                 o = reset_env(env)
                 episode += 1
+                returns_window.append(ep_reward)
                 ep_reward = 0.0
+                if (
+                    episode >= min_episodes
+                    and len(returns_window) == stop_window
+                    and (sum(returns_window) / stop_window) >= stop_avg_return
+                ):
+                    break
 
             if steps >= start_steps:
                 o_b, a_b, r_b, no_b, d_b = buffer.sample(batch_size)
@@ -145,7 +191,11 @@ def train(
 
                 q_vals = q(o_b).gather(1, a_b.view(-1, 1)).squeeze(1)
                 with torch.no_grad():
-                    next_q = target_q(no_b).max(1).values
+                    if double_dqn:
+                        next_actions = q(no_b).argmax(1)
+                        next_q = target_q(no_b).gather(1, next_actions.view(-1, 1)).squeeze(1)
+                    else:
+                        next_q = target_q(no_b).max(1).values
                     target = r_b + (1.0 - d_b) * gamma * next_q
 
                 loss = nn.MSELoss()(q_vals, target)
@@ -161,7 +211,7 @@ def train(
         torch.save(q.state_dict(), model_path)
 
     returns = []
-    for _ in range(10):
+    for _ in range(eval_episodes):
         o = reset_env(env)
         ret = 0.0
         done = False
@@ -174,6 +224,7 @@ def train(
         returns.append(ret)
     avg_ret = sum(returns) / len(returns)
     print(f"AvgEvalReturn={avg_ret:.2f}")
+    print(f"EvalEpisodes={eval_episodes}")
     print(f"ModelSaved={model_path}")
 
     if render:
@@ -200,6 +251,12 @@ if __name__ == "__main__":
     parser.add_argument("--force-train", action="store_true")
     parser.add_argument("--render-episodes", type=int, default=5)
     parser.add_argument("--render-delay", type=float, default=1 / 60)
+    parser.add_argument("--fast", action="store_true")
+    parser.add_argument("--stop-avg-return", type=float, default=450)
+    parser.add_argument("--stop-window", type=int, default=20)
+    parser.add_argument("--no-double-dqn", action="store_true")
+    parser.add_argument("--no-dueling", action="store_true")
+    parser.add_argument("--eval-episodes", type=int, default=10)
     args = parser.parse_args()
     train(
         render=args.render,
@@ -208,4 +265,10 @@ if __name__ == "__main__":
         force_train=args.force_train,
         render_episodes=args.render_episodes,
         render_delay=args.render_delay,
+        fast=args.fast,
+        stop_avg_return=args.stop_avg_return,
+        stop_window=args.stop_window,
+        double_dqn=not args.no_double_dqn,
+        dueling=not args.no_dueling,
+        eval_episodes=args.eval_episodes,
     )
