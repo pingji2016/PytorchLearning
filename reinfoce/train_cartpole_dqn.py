@@ -1,4 +1,5 @@
 import os
+import time
 import math
 import random
 import numpy as np
@@ -76,7 +77,14 @@ def step_env(env, action):
     return obs, reward, done
 
 
-def train():
+def train(
+    render=False,
+    total_steps=100000,
+    model_path="",
+    force_train=False,
+    render_episodes=5,
+    render_delay=1 / 60,
+):
     env = gym.make("CartPole-v1")
     obs_dim = env.observation_space.shape[0]
     act_dim = env.action_space.n
@@ -87,67 +95,70 @@ def train():
     target_q.load_state_dict(q.state_dict())
     optimizer = optim.Adam(q.parameters(), lr=1e-3)
 
-    buffer = ReplayBuffer(100000, obs_dim)
-    gamma = 0.99
-    batch_size = 64
-    start_steps = 1000
-    total_steps = 100000
-    target_update = 1000
-    eps_start = 1.0
-    eps_end = 0.05
-    eps_decay = 30000
-
-    steps = 0
-    episode = 0
-    o = reset_env(env)
-    ep_reward = 0.0
-
-    while steps < total_steps:
-        epsilon = eps_end + (eps_start - eps_end) * math.exp(-1.0 * steps / eps_decay)
-        if random.random() < epsilon:
-            a = env.action_space.sample()
-        else:
-            with torch.no_grad():
-                qv = q(torch.from_numpy(o).float().unsqueeze(0).to(device))
-                a = int(torch.argmax(qv, dim=1).item())
-
-        no, r, done = step_env(env, a)
-        buffer.add(o, a, r, no, float(done))
-        ep_reward += r
-        o = no
-
-        if done:
-            o = reset_env(env)
-            episode += 1
-            ep_reward = 0.0
-
-        if steps >= start_steps:
-            o_b, a_b, r_b, no_b, d_b = buffer.sample(batch_size)
-            o_b = o_b.to(device)
-            a_b = a_b.to(device)
-            r_b = r_b.to(device)
-            no_b = no_b.to(device)
-            d_b = d_b.to(device)
-
-            q_vals = q(o_b).gather(1, a_b.view(-1, 1)).squeeze(1)
-            with torch.no_grad():
-                next_q = target_q(no_b).max(1).values
-                target = r_b + (1.0 - d_b) * gamma * next_q
-
-            loss = nn.MSELoss()(q_vals, target)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-        if (steps + 1) % target_update == 0:
-            target_q.load_state_dict(q.state_dict())
-
-        steps += 1
-
     models_dir = os.path.join(os.path.dirname(__file__), "models")
     os.makedirs(models_dir, exist_ok=True)
-    model_path = os.path.join(models_dir, "cartpole_dqn.pth")
-    torch.save(q.state_dict(), model_path)
+    model_path = model_path if model_path else os.path.join(models_dir, "cartpole_dqn.pth")
+
+    if os.path.exists(model_path) and not force_train:
+        q.load_state_dict(torch.load(model_path, map_location=device))
+    else:
+        buffer = ReplayBuffer(100000, obs_dim)
+        gamma = 0.99
+        batch_size = 64
+        start_steps = 1000
+        target_update = 1000
+        eps_start = 1.0
+        eps_end = 0.05
+        eps_decay = 30000
+
+        steps = 0
+        episode = 0
+        o = reset_env(env)
+        ep_reward = 0.0
+
+        while steps < total_steps:
+            epsilon = eps_end + (eps_start - eps_end) * math.exp(-1.0 * steps / eps_decay)
+            if random.random() < epsilon:
+                a = env.action_space.sample()
+            else:
+                with torch.no_grad():
+                    qv = q(torch.from_numpy(o).float().unsqueeze(0).to(device))
+                    a = int(torch.argmax(qv, dim=1).item())
+
+            no, r, done = step_env(env, a)
+            buffer.add(o, a, r, no, float(done))
+            ep_reward += r
+            o = no
+
+            if done:
+                o = reset_env(env)
+                episode += 1
+                ep_reward = 0.0
+
+            if steps >= start_steps:
+                o_b, a_b, r_b, no_b, d_b = buffer.sample(batch_size)
+                o_b = o_b.to(device)
+                a_b = a_b.to(device)
+                r_b = r_b.to(device)
+                no_b = no_b.to(device)
+                d_b = d_b.to(device)
+
+                q_vals = q(o_b).gather(1, a_b.view(-1, 1)).squeeze(1)
+                with torch.no_grad():
+                    next_q = target_q(no_b).max(1).values
+                    target = r_b + (1.0 - d_b) * gamma * next_q
+
+                loss = nn.MSELoss()(q_vals, target)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+            if (steps + 1) % target_update == 0:
+                target_q.load_state_dict(q.state_dict())
+
+            steps += 1
+
+        torch.save(q.state_dict(), model_path)
 
     returns = []
     for _ in range(10):
@@ -165,6 +176,36 @@ def train():
     print(f"AvgEvalReturn={avg_ret:.2f}")
     print(f"ModelSaved={model_path}")
 
+    if render:
+        render_env = gym.make("CartPole-v1", render_mode="human")
+        for _ in range(render_episodes):
+            o = reset_env(render_env)
+            done = False
+            while not done:
+                with torch.no_grad():
+                    qv = q(torch.from_numpy(o).float().unsqueeze(0).to(device))
+                    a = int(torch.argmax(qv, dim=1).item())
+                o, _, done = step_env(render_env, a)
+                time.sleep(render_delay)
+        render_env.close()
+
 
 if __name__ == "__main__":
-    train()
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--render", action="store_true")
+    parser.add_argument("--total-steps", type=int, default=100000)
+    parser.add_argument("--model-path", type=str, default="")
+    parser.add_argument("--force-train", action="store_true")
+    parser.add_argument("--render-episodes", type=int, default=5)
+    parser.add_argument("--render-delay", type=float, default=1 / 60)
+    args = parser.parse_args()
+    train(
+        render=args.render,
+        total_steps=args.total_steps,
+        model_path=args.model_path,
+        force_train=args.force_train,
+        render_episodes=args.render_episodes,
+        render_delay=args.render_delay,
+    )
