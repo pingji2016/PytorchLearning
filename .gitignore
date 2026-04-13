@@ -11,6 +11,8 @@
 *.png
 /transformer_model.pth
 /data/MNIST/raw/
+/data/*
+.idea/*
 /test_image_1.png
 /test_image_2.png
 /training_loss.png

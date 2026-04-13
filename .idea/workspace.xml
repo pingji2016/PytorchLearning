@@ -4,10 +4,24 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ce6f1cab-d136-461e-a90a-340652190ad9" name="更改" comment="MNIST">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="ce6f1cab-d136-461e-a90a-340652190ad9" name="更改" comment="pygame-CartPole">
+      <change afterPath="$PROJECT_DIR$/data/MNIST/raw/t10k-images-idx3-ubyte" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/data/MNIST/raw/t10k-images-idx3-ubyte.gz" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/data/MNIST/raw/t10k-labels-idx1-ubyte" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/data/MNIST/raw/t10k-labels-idx1-ubyte.gz" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/data/MNIST/raw/train-images-idx3-ubyte" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/data/MNIST/raw/train-images-idx3-ubyte.gz" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/data/MNIST/raw/train-labels-idx1-ubyte" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/data/MNIST/raw/train-labels-idx1-ubyte.gz" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/q_learning_returns.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/run.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test_image_1.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test_image_2.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/training_loss.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/1.py" beforeDir="false" afterPath="$PROJECT_DIR$/1.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/samples/fake_images-1.png" beforeDir="false" afterPath="$PROJECT_DIR$/samples/fake_images-1.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/samples/real_images.png" beforeDir="false" afterPath="$PROJECT_DIR$/samples/real_images.png" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -35,6 +49,9 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GoLibraries">
+    <option name="indexEntireGoPath" value="true" />
+  </component>
   <component name="McpProjectServerCommands">
     <commands />
     <urls />
@@ -54,24 +71,35 @@
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
     &quot;ai.playground.ignore.import.keys.banner.in.settings&quot;: &quot;true&quot;,
     &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
     &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/github/pyprj/demo&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/github/pyprj/demo/gan&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.keymap&quot;,
     &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\github\pyprj\demo\gan" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\github\pyprj\demo\gan" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="1" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="demo" />
@@ -125,7 +153,23 @@
       <workItem from="1767449992253" duration="100000" />
       <workItem from="1768063282244" duration="14000" />
       <workItem from="1768110169171" duration="636000" />
-      <workItem from="1768144443807" duration="1245000" />
+      <workItem from="1768144443807" duration="2151000" />
+      <workItem from="1768231389744" duration="625000" />
+      <workItem from="1768316036943" duration="319000" />
+      <workItem from="1768411448917" duration="30000" />
+      <workItem from="1768411484721" duration="262000" />
+      <workItem from="1768492299844" duration="3047000" />
+      <workItem from="1768573633987" duration="1500000" />
+      <workItem from="1768651467340" duration="2038000" />
+      <workItem from="1768741265183" duration="1013000" />
+      <workItem from="1769015842372" duration="1577000" />
+      <workItem from="1769181223702" duration="825000" />
+      <workItem from="1769250550891" duration="2473000" />
+      <workItem from="1769332450759" duration="5436000" />
+      <workItem from="1769438342369" duration="2870000" />
+      <workItem from="1769695676082" duration="9000" />
+      <workItem from="1769840024305" duration="3000" />
+      <workItem from="1772723983208" duration="916000" />
     </task>
     <task id="LOCAL-00001" summary="init">
       <option name="closed" value="true" />
@@ -151,7 +195,71 @@
       <option name="project" value="LOCAL" />
       <updated>1768049905018</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="0111">
+      <option name="closed" value="true" />
+      <created>1768146594871</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1768146594871</updated>
+    </task>
+    <task id="LOCAL-00005" summary="comment">
+      <option name="closed" value="true" />
+      <created>1768496127864</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1768496127864</updated>
+    </task>
+    <task id="LOCAL-00006" summary="opt1">
+      <option name="closed" value="true" />
+      <created>1768496402310</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1768496402310</updated>
+    </task>
+    <task id="LOCAL-00007" summary="opt2">
+      <option name="closed" value="true" />
+      <created>1768496580346</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1768496580346</updated>
+    </task>
+    <task id="LOCAL-00008" summary="findtune">
+      <option name="closed" value="true" />
+      <created>1768653488021</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1768653488021</updated>
+    </task>
+    <task id="LOCAL-00009" summary="ignore">
+      <option name="closed" value="true" />
+      <created>1768741327897</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1768741327897</updated>
+    </task>
+    <task id="LOCAL-00010" summary="r;l">
+      <option name="closed" value="true" />
+      <created>1769440277696</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1769440277696</updated>
+    </task>
+    <task id="LOCAL-00011" summary="pygame-CartPole">
+      <option name="closed" value="true" />
+      <created>1769441240765</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1769441240765</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -171,7 +279,19 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="init" />
     <MESSAGE value="MNIST" />
-    <option name="LAST_COMMIT_MESSAGE" value="MNIST" />
+    <MESSAGE value="0111" />
+    <MESSAGE value="comment" />
+    <MESSAGE value="opt1" />
+    <MESSAGE value="opt2" />
+    <MESSAGE value="findtune" />
+    <MESSAGE value="ignore" />
+    <MESSAGE value="r;l" />
+    <MESSAGE value="pygame-CartPole" />
+    <option name="LAST_COMMIT_MESSAGE" value="pygame-CartPole" />
+  </component>
+  <component name="VgoProject">
+    <integration-enabled>false</integration-enabled>
+    <settings-migrated>true</settings-migrated>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/demo$1.coverage" NAME="1 Coverage Results" MODIFIED="1768144547078" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
